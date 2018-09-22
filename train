@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Usage: train DATASETFOLDER RESULTSFOLDER DATASETNAME
+#
+# train cyclegan on given dataset
+#
+# Arguments:
+#   DATASETFOLDER  folder where the dataset is located
+#   RESULTSFOLDER  folder where checkpoints and results will be stored
+#   DATASETNAME    name of dataset (must be under DATASETFOLDER/ )
+#
+
+# Note: docopts.sh must be in PATH
+
+# auto parse the header above, See: docopt_get_help_string
+source docopts.sh --auto "$@"
+
+echo ""
+
+DATASETFOLDER=$(realpath "${ARGS['DATASETFOLDER']}")
+RESULTSFOLDER=$(realpath "${ARGS['RESULTSFOLDER']}")
+DATASETNAME="${ARGS['DATASETNAME']}"
+
+if [ ! -d "${DATASETFOLDER}/${DATASETNAME}" ]; then
+  # Control will enter here if ${DATASETFOLDER}/${DATASETNAME} doesn't exist.
+  >&2 echo "error: dataset '${DATASETFOLDER}/${DATASETNAME}' doesn't exist !"
+  exit -1 
+fi
+
+echo "dataset: ${DATASETFOLDER}/${DATASETNAME}"
+if [ ! -d "${RESULTSFOLDER}" ]; then
+  # Control will enter here if ${RESULTSFOLDER} doesn't exist.
+  >&2 echo "error: result folder '${RESULTSFOLDER}' doesn't exist !"
+  exit -1 
+fi
+HTMLFOLDER="${RESULTSFOLDER}/${DATASETNAME}/html"
+mkdir -p "${HTMLFOLDER}"
+echo "html: ${HTMLFOLDER}"
+
+
+echo "docker..."
+nvidia-docker run -it --network host \
+                  --shm-size 8G \
+                  -v "${DATASETFOLDER}":/sagan/data \
+                  -v "${HTMLFOLDER}":/sagan/samples \
+                  dmaugis/sagan \
+bash -c -l "python2.7 main.py --batch_size 4 --imsize 128 --dataset ${DATASETNAME} "
+
+
